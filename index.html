@@ -693,379 +693,310 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         // ===== KONFIGURASI API =====
-        const OPENROUTER_API_KEY = "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";
-        const MODEL_NAME = "google/gemini-pro";
-        const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_API_KEY = "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"; // ← PASTE API KEY DI SINI
+const MODEL_NAME = "google/gemini-pro";
+const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+// Riwayat chat lokal
+let chat_history = [
+    {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas. Jawab dalam bahasa Indonesia."}
+];
+
+// ===== INISIALISASI =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Set waktu pesan selamat datang
+    const welcomeTime = document.getElementById('welcome-time');
+    const now = new Date();
+    welcomeTime.textContent = now.toLocaleTimeString('id-ID', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    // Setup event listener
+    setupEventListeners();
+    
+    // Cek koneksi sederhana
+    checkConnectionSimple();
+    
+    // Fokus otomatis ke input
+    setTimeout(() => {
+        document.getElementById('message-input').focus();
+    }, 300);
+});
+
+// ===== CEK KONEKSI SEDERHANA =====
+function checkConnectionSimple() {
+    const statusElement = document.getElementById('connection-status');
+    
+    if (OPENROUTER_API_KEY && OPENROUTER_API_KEY.length > 30) {
+        statusElement.innerHTML = '<span class="status-dot"></span> Terhubung';
+        statusElement.style.color = '#10b981';
+    } else {
+        statusElement.innerHTML = '<span class="status-dot" style="background: #ef4444"></span> API Key Kosong';
+        statusElement.style.color = '#ef4444';
+    }
+    
+    hideError();
+}
+
+// ===== FUNGSI CHAT =====
+async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    
+    if (!message) {
+        showNotification('Masukkan pesan terlebih dahulu', 'error');
+        return;
+    }
+    
+    // Nonaktifkan tombol kirim
+    const sendBtn = document.getElementById('send-button');
+    sendBtn.disabled = true;
+    
+    // Tambahkan pesan pengguna ke tampilan
+    addMessage('user', message);
+    input.value = '';
+    autoResize(input);
+    
+    // Tampilkan indikator mengetik
+    showTypingIndicator();
+    
+    // Sembunyikan pesan error jika ada
+    hideError();
+    
+    try {
+        // Tambahkan pesan pengguna ke riwayat
+        chat_history.push({"role": "user", "content": message});
         
-        // Riwayat chat lokal
-        let chat_history = [
-            {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas."}
-        ];
-
-        // ===== INISIALISASI =====
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set waktu pesan selamat datang
-            const welcomeTime = document.getElementById('welcome-time');
-            const now = new Date();
-            welcomeTime.textContent = now.toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            // Setup event listener
-            setupEventListeners();
-            
-            // Cek koneksi ke OpenRouter
-            checkConnection();
-            
-            // Inisialisasi syntax highlighting
-            hljs.highlightAll();
-            
-            // Fokus otomatis ke input
-            setTimeout(() => {
-                document.getElementById('message-input').focus();
-            }, 300);
-            
-            // Sesuaikan tampilan saat ukuran layar berubah
-            window.addEventListener('resize', adjustLayout);
-            adjustLayout();
+        // Kirim permintaan ke OpenRouter API
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": window.location.origin || 'http://localhost',
+                "X-Title": "Nexus AI Chat"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: chat_history,
+                temperature: 0.7,
+                max_tokens: 1024
+            })
         });
-
-        // ===== PENYESUAIAN TAMPILAN =====
-        function adjustLayout() {
-            const screenHeight = window.innerHeight;
-            const messagesContainer = document.getElementById('messages-container');
-            
-            if (screenHeight < 600) {
-                messagesContainer.style.gap = '8px';
-                messagesContainer.classList.add('compact-messages');
-            } else {
-                messagesContainer.style.gap = '12px';
-                messagesContainer.classList.remove('compact-messages');
-            }
+        
+        const data = await response.json();
+        
+        // Sembunyikan indikator mengetik
+        hideTypingIndicator();
+        
+        if (!response.ok) {
+            const errorMsg = data.error?.message || data.error?.code || 'Gagal mengambil respons';
+            throw new Error(errorMsg);
         }
-
-        // ===== FUNGSI CHAT =====
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const message = input.value.trim();
-            
-            if (!message) {
-                showNotification('Masukkan pesan terlebih dahulu', 'error');
-                return;
-            }
-            
-            // Nonaktifkan tombol kirim
-            const sendBtn = document.getElementById('send-button');
-            sendBtn.disabled = true;
-            
-            // Tambahkan pesan pengguna ke tampilan
-            addMessage('user', message);
-            input.value = '';
-            autoResize(input);
-            
-            // Tampilkan indikator mengetik
-            showTypingIndicator();
-            
-            // Sembunyikan pesan error jika ada
-            hideError();
-            
-            try {
-                // Tambahkan pesan pengguna ke riwayat
-                chat_history.push({"role": "user", "content": message});
-                
-                // Kirim permintaan ke OpenRouter API
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": window.location.origin,
-                        "X-Title": document.title
-                    },
-                    body: JSON.stringify({
-                        model: MODEL_NAME,
-                        messages: chat_history,
-                        temperature: 0.7,
-                        max_tokens: 1024
-                    })
-                });
-                
-                const data = await response.json();
-                
-                // Sembunyikan indikator mengetik
-                hideTypingIndicator();
-                
-                if (!response.ok) {
-                    throw new Error(data.error?.message || 'Gagal mengambil respons dari AI');
-                }
-                
-                const aiResponse = data.choices[0].message.content.trim();
-                // Tambahkan respons AI ke riwayat
-                chat_history.push({"role": "assistant", "content": aiResponse});
-                
-                // Tambahkan respons ke tampilan
-                addMessage('ai', aiResponse);
-                
-                // Tampilkan notifikasi sukses
-                showNotification('Pesan terkirim', 'success');
-                
-            } catch (error) {
-                // Sembunyikan indikator mengetik
-                hideTypingIndicator();
-                
-                // Tampilkan pesan error
-                showError(error.message);
-                
-                // Tampilkan notifikasi error
-                showNotification('Error: ' + error.message, 'error');
-                
-            } finally {
-                // Aktifkan kembali tombol kirim
-                sendBtn.disabled = false;
-            }
+        
+        const aiResponse = data.choices[0].message.content.trim();
+        // Tambahkan respons AI ke riwayat
+        chat_history.push({"role": "assistant", "content": aiResponse});
+        
+        // Tambahkan respons ke tampilan
+        addMessage('ai', aiResponse);
+        
+        // Tampilkan notifikasi sukses
+        showNotification('Pesan terkirim', 'success');
+        
+    } catch (error) {
+        // Sembunyikan indikator mengetik
+        hideTypingIndicator();
+        
+        // Tampilkan pesan error detail
+        let errorMsg = error.message;
+        if (errorMsg.includes('not found') || errorMsg.includes('invalid')) {
+            errorMsg = 'API Key tidak valid. Dapatkan key baru di: https://openrouter.ai/keys';
+        } else if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
+            errorMsg = 'Quota habis. Cek di: https://openrouter.ai/activity';
         }
+        
+        showError('❌ ' + errorMsg);
+        showNotification('Error: ' + errorMsg.substring(0, 50), 'error');
+        
+    } finally {
+        // Aktifkan kembali tombol kirim
+        sendBtn.disabled = false;
+    }
+}
 
-        function addMessage(sender, text) {
-            const container = document.getElementById('messages-container');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            
-            const time = new Date().toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            messageDiv.innerHTML = `
-                <div class="message-avatar">
-                    <i class="fas fa-${sender === 'user' ? 'user' : 'robot'}"></i>
-                </div>
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-sender">${sender === 'user' ? 'Anda' : 'Nexus AI'}</span>
-                        <span class="message-time">${time}</span>
-                    </div>
-                    <div class="message-bubble">
-                        <div class="message-text">${formatMessage(text)}</div>
-                    </div>
-                    <div class="message-actions">
-                        <button class="message-action-btn" onclick="copyMessage(this)">
-                            <i class="far fa-copy"></i>
-                            <span>Salin</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(messageDiv);
-            
-            // Gulir ke bawah secara halus
-            setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
-            }, 50);
-            
-            // Terapkan syntax highlighting
-            setTimeout(() => hljs.highlightAll(), 100);
-            
-            // Sesuaikan tampilan
-            adjustLayout();
+function addMessage(sender, text) {
+    const container = document.getElementById('messages-container');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    
+    const time = new Date().toLocaleTimeString('id-ID', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <i class="fas fa-${sender === 'user' ? 'user' : 'robot'}"></i>
+        </div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-sender">${sender === 'user' ? 'Anda' : 'Nexus AI'}</span>
+                <span class="message-time">${time}</span>
+            </div>
+            <div class="message-bubble">
+                <div class="message-text">${formatMessage(text)}</div>
+            </div>
+            <div class="message-actions">
+                <button class="message-action-btn" onclick="copyMessage(this)">
+                    <i class="far fa-copy"></i>
+                    <span>Salin</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(messageDiv);
+    
+    // Gulir ke bawah
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 50);
+}
+
+function formatMessage(text) {
+    // Konversi format markdown ke HTML
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+    text = text.replace(/\n/g, '<br>');
+    return text;
+}
+
+// ===== FUNGSI UI =====
+function showTypingIndicator() {
+    const container = document.getElementById('messages-container');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'typing-indicator';
+    typingDiv.id = 'typing-indicator';
+    typingDiv.innerHTML = `
+        <div class="message-avatar">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+    `;
+    container.appendChild(typingDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    const typingDiv = document.getElementById('typing-indicator');
+    if (typingDiv) typingDiv.remove();
+}
+
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+}
+
+function clearInput() {
+    const input = document.getElementById('message-input');
+    input.value = '';
+    autoResize(input);
+    input.focus();
+    showNotification('Input telah dihapus', 'success');
+}
+
+// ===== FUNGSI AKSI PESAN =====
+function copyMessage(button) {
+    const messageText = button.closest('.message-content').querySelector('.message-text').textContent;
+    navigator.clipboard.writeText(messageText).then(() => {
+        showNotification('Teks berhasil disalin', 'success');
+    }).catch(() => {
+        showNotification('Gagal menyalin teks', 'error');
+    });
+}
+
+// ===== MANAJEMEN CHAT =====
+function clearChat() {
+    if (confirm('Apakah Anda yakin ingin menghapus semua pesan?')) {
+        const container = document.getElementById('messages-container');
+        container.innerHTML = '';
+        
+        // Reset riwayat chat
+        chat_history = [
+            {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas. Jawab dalam bahasa Indonesia."}
+        ];
+        
+        // Tambahkan pesan selamat datang kembali
+        addMessage('ai', `Chat telah dibersihkan. 👋<br>Apa yang bisa saya bantu saat ini?`);
+        
+        showNotification('Semua pesan telah dihapus', 'success');
+    }
+}
+
+// ===== PENANGANAN ERROR =====
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(hideError, 7000);
+}
+
+function hideError() {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.classList.add('hidden');
+}
+
+// ===== NOTIFIKASI =====
+function showNotification(text, type) {
+    const notification = document.getElementById('notification');
+    const textElement = document.getElementById('notification-text');
+    const iconElement = notification.querySelector('.notification-icon i');
+    
+    notification.className = `notification ${type} hidden`;
+    textElement.textContent = text;
+    iconElement.className = type === 'success' ? 'fas fa-check' : 'fas fa-exclamation-circle';
+    
+    notification.classList.remove('hidden');
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.classList.add('hidden'), 300);
+    }, 2000);
+}
+
+// ===== EVENT LISTENERS =====
+function setupEventListeners() {
+    const input = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-button');
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
         }
-
-        function formatMessage(text) {
-            // Konversi format markdown ke HTML
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-            text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-            
-            // Konversi URL menjadi tautan
-            text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-            
-            // Konversi baris baru menjadi tag <br>
-            text = text.replace(/\n/g, '<br>');
-            
-            return text;
+    });
+    
+    // Shortcut keys
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+            e.preventDefault();
+            clearInput();
         }
-
-        // ===== FUNGSI UI =====
-        function showTypingIndicator() {
-            const container = document.getElementById('messages-container');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing-indicator';
-            typingDiv.id = 'typing-indicator';
-            typingDiv.innerHTML = `
-                <div class="message-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-            `;
-            container.appendChild(typingDiv);
-            container.scrollTop = container.scrollHeight;
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            clearChat();
         }
-
-        function hideTypingIndicator() {
-            const typingDiv = document.getElementById('typing-indicator');
-            if (typingDiv) typingDiv.remove();
-        }
-
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-            adjustLayout();
-        }
-
-        function clearInput() {
-            const input = document.getElementById('message-input');
-            input.value = '';
-            autoResize(input);
-            input.focus();
-            showNotification('Input telah dihapus', 'success');
-        }
-
-        // ===== FUNGSI AKSI PESAN =====
-        function copyMessage(button) {
-            const messageText = button.closest('.message-content').querySelector('.message-text').textContent;
-            navigator.clipboard.writeText(messageText).then(() => {
-                showNotification('Teks berhasil disalin', 'success');
-            }).catch(() => {
-                showNotification('Gagal menyalin teks', 'error');
-            });
-        }
-
-        // ===== MANAJEMEN CHAT =====
-        function clearChat() {
-            if (confirm('Apakah Anda yakin ingin menghapus semua pesan?')) {
-                const container = document.getElementById('messages-container');
-                container.innerHTML = '';
-                
-                // Reset riwayat chat
-                chat_history = [
-                    {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas."}
-                ];
-                
-                // Tambahkan pesan selamat datang kembali
-                addMessage('ai', `Chat telah dibersihkan. 👋<br>Apa yang bisa saya bantu saat ini?`);
-                
-                showNotification('Semua pesan telah dihapus', 'success');
-            }
-        }
-
-        // ===== PENANGANAN ERROR =====
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = '❌ ' + message;
-            errorDiv.classList.remove('hidden');
-            
-            // Sembunyikan error secara otomatis setelah 5 detik
-            setTimeout(hideError, 5000);
-        }
-
-        function hideError() {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.classList.add('hidden');
-        }
-
-        // ===== CEK KONEKSI =====
-        async function checkConnection() {
-            const statusElement = document.getElementById('connection-status');
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'HEAD',
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`
-                    }
-                });
-                
-                if (response.ok) {
-                    statusElement.innerHTML = '<span class="status-dot"></span> Terhubung';
-                    statusElement.style.color = 'var(--secondary)';
-                } else {
-                    throw new Error('Koneksi gagal');
-                }
-            } catch (error) {
-                statusElement.innerHTML = '<span class="status-dot" style="background: var(--danger)"></span> Tidak Terhubung';
-                statusElement.style.color = 'var(--danger)';
-                showError('Tidak dapat terhubung ke layanan AI.');
-            }
-        }
-
-        // ===== NOTIFIKASI =====
-        function showNotification(text, type) {
-            const notification = document.getElementById('notification');
-            const textElement = document.getElementById('notification-text');
-            const iconElement = notification.querySelector('.notification-icon i');
-            
-            // Atur jenis notifikasi
-            notification.className = `notification ${type} hidden`;
-            textElement.textContent = text;
-            
-            // Ganti ikon sesuai jenis
-            iconElement.className = type === 'success' ? 'fas fa-check' : 'fas fa-exclamation-circle';
-            
-            // Tampilkan notifikasi
-            notification.classList.remove('hidden');
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 10);
-            
-            // Sembunyikan setelah 2 detik
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.classList.add('hidden'), 300);
-            }, 2000);
-        }
-
-        // ===== EVENT LISTENERS =====
-        function setupEventListeners() {
-            const input = document.getElementById('message-input');
-            const sendBtn = document.getElementById('send-button');
-            
-            // Kirim pesan dengan Enter (Shift+Enter untuk baris baru)
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-            
-            // Fokus ke input saat diklik di area pesan
-            const messagesContainer = document.getElementById('messages-container');
-            messagesContainer.addEventListener('click', () => {
-                input.focus();
-            });
-            
-            // Pintasan keyboard
-            document.addEventListener('keydown', (e) => {
-                // Ctrl/Cmd + L untuk menghapus input
-                if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-                    e.preventDefault();
-                    clearInput();
-                }
-                // Ctrl/Cmd + D untuk menghapus chat
-                else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-                    e.preventDefault();
-                    clearChat();
-                }
-                // Escape untuk keluar dari fokus input
-                else if (e.key === 'Escape') {
-                    input.blur();
-                }
-            });
-            
-            // Cegah zoom halaman di perangkat seluler
-            document.addEventListener('touchstart', function(e) {
-                if (e.touches.length > 1) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-            
-            // Perbarui status koneksi setiap 5 menit
-            setInterval(checkConnection, 300000);
+    });
         }
     </script>
 </body>

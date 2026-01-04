@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus AI</title>
+    <!-- Font & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    
+    <style>
+        /* ===== VARIABLES & RESET ===== */
+        :root {
+            /* Color Palette */
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            /* Background Colors */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-surface: #1e293b;
+            
+            /* Text Colors */
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            
+            /* Borders & Shadows */
+            --border-color: #475569;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            
+            /* Animations */
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+            --transition-slow: 500ms ease;
+            
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-secondary: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 0;
+        }
+
+        /* ===== CHAT CONTAINER ===== */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            overflow: hidden;
+        }
+
+        /* ===== CHAT HEADER ===== */
+        .chat-header {
+            padding: 16px 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            min-height: 72px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .ai-info h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--secondary);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: var(--transition-fast);
+        }
+
+        .action-btn:hover {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border-color: var(--primary);
+        }
+
+        /* ===== MESSAGES CONTAINER ===== */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* Custom Scrollbar */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-light);
+        }
+
+        /* ===== MESSAGE STYLES ===== */
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: messageAppear 0.3s ease-out;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .message.user .message-avatar {
+            background: var(--gradient-secondary);
+        }
+
+        .message.ai .message-avatar {
+            background: var(--gradient-primary);
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: calc(100% - 48px);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .message-bubble {
+            background: var(--bg-tertiary);
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message.user .message-bubble {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            border-top-right-radius: 4px;
+        }
+
+        .message.ai .message-bubble {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.3);
+            border-top-left-radius: 4px;
+        }
+
+        .message-text {
+            line-height: 1.5;
+            font-size: 13px;
+        }
+
+        .message-text pre {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 8px 0;
+            border: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .message-text code {
+            background: var(--bg-primary);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--primary-light);
+        }
+
+        .message-text a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+
+        .message-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== MESSAGE ACTIONS ===== */
+        .message-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: var(--transition-fast);
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .message-action-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            transition: var(--transition-fast);
+        }
+
+        .message-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ===== TYPING INDICATOR ===== */
+        .typing-indicator {
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            animation: typingAppear 0.3s ease-out;
+            animation-fill-mode: forwards;
+            padding: 0 16px;
+        }
+
+        @keyframes typingAppear {
+            to { opacity: 1; }
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        /* ===== INPUT AREA ===== */
+        .input-container {
+            padding: 16px;
+            background: rgba(30, 41, 59, 0.9);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .chat-input {
+            width: 100%;
+            min-height: 48px;
+            max-height: 120px;
+            padding: 12px 60px 12px 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 13px;
+            resize: none;
+            transition: var(--transition-fast);
+            line-height: 1.4;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 6px;
+        }
+
+        .input-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: var(--transition-fast);
+        }
+
+        .input-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .input-btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-extras {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .extra-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .extra-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            transition: var(--transition-fast);
+        }
+
+        .extra-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .model-indicator {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ===== ERROR MESSAGE ===== */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #fca5a5;
+            font-size: 13px;
+            text-align: center;
+            margin: 0 16px 8px;
+        }
+
+        /* ===== UTILITY CLASSES ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ===== NOTIFICATION ===== */
+        .notification {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-out;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 3px solid var(--secondary);
+        }
+
+        .notification.error {
+            border-left: 3px solid var(--danger);
+        }
+
+        .notification-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .notification.success .notification-icon {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .notification.error .notification-icon {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* ===== COMPACT STYLES ===== */
+        .compact-message .message-text {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .compact-message .message-bubble {
+            padding: 10px 12px;
+        }
+        
+        .compact-message .message-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main App Container -->
+    <div class="app-container">
+        <div class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="header-content">
+                    <div class="header-left">
+                        <div class="ai-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="ai-info">
+                            <h2>Nexus AI</h2>
+                            <div class="ai-status">
+                                <span class="status-dot"></span>
+                                <span id="connection-status">Menyambung...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="action-btn" onclick="clearChat()" title="Hapus Chat">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div class="messages-container" id="messages-container">
+                <!-- Welcome Message -->
+                <div class="message ai fade-in">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-sender">Nexus AI</span>
+                            <span class="message-time" id="welcome-time"></span>
+                        </div>
+                        <div class="message-bubble">
+                            <div class="message-text">
+                                👋 <strong>Halo! Saya Nexus AI</strong><br>
+                                Asisten AI yang ditenagai oleh <strong>OpenRouter</strong><br><br>
+                                Siap membantu Anda dengan berbagai tugas.
+                            </div>
+                        </div>
+                        <div class="message-actions">
+                            <button class="message-action-btn" onclick="copyMessage(this)">
+                                <i class="far fa-copy"></i>
+                                <span>Salin</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div class="error-message hidden" id="error-message"></div>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="message-input" 
+                        placeholder="Tulis pesan..."
+                        rows="1"
+                        oninput="autoResize(this)"
+                    ></textarea>
+                    <div class="input-actions">
+                        <button class="input-btn" id="send-button" onclick="sendMessage()" title="Kirim Pesan">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-extras">
+                    <div class="extra-actions">
+                        <button class="extra-btn" onclick="clearInput()" title="Hapus Input">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="model-indicator">
+                        <span>GPT-3.5 Turbo</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification hidden" id="notification">
+        <div class="notification-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <div class="notification-text" id="notification-text"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        // ===== KONFIGURASI API =====
+        const OPENROUTER_API_KEY = "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";
+        const MODEL_NAME = "openai/gpt-3.5-turbo";
+        const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+        
+        // Riwayat chat lokal
+        let chat_history = [
+            {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas."}
+        ];
+
+        // ===== INISIALISASI =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set waktu pesan selamat datang
+            const welcomeTime = document.getElementById('welcome-time');
+            const now = new Date();
+            welcomeTime.textContent = now.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            // Setup event listener
+            setupEventListeners();
+            
+            // Cek koneksi ke OpenRouter
+            checkConnection();
+            
+            // Inisialisasi syntax highlighting
+            hljs.highlightAll();
+            
+            // Fokus otomatis ke input
+            setTimeout(() => {
+                document.getElementById('message-input').focus();
+            }, 300);
+            
+            // Sesuaikan tampilan saat ukuran layar berubah
+            window.addEventListener('resize', adjustLayout);
+            adjustLayout();
+        });
+
+        // ===== PENYESUAIAN TAMPILAN =====
+        function adjustLayout() {
+            const screenHeight = window.innerHeight;
+            const messagesContainer = document.getElementById('messages-container');
+            
+            if (screenHeight < 600) {
+                messagesContainer.style.gap = '8px';
+                messagesContainer.classList.add('compact-messages');
+            } else {
+                messagesContainer.style.gap = '12px';
+                messagesContainer.classList.remove('compact-messages');
+            }
+        }
+
+        // ===== FUNGSI CHAT =====
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) {
+                showNotification('Masukkan pesan terlebih dahulu', 'error');
+                return;
+            }
+            
+            // Nonaktifkan tombol kirim
+            const sendBtn = document.getElementById('send-button');
+            sendBtn.disabled = true;
+            
+            // Tambahkan pesan pengguna ke tampilan
+            addMessage('user', message);
+            input.value = '';
+            autoResize(input);
+            
+            // Tampilkan indikator mengetik
+            showTypingIndicator();
+            
+            // Sembunyikan pesan error jika ada
+            hideError();
+            
+            try {
+                // Tambahkan pesan pengguna ke riwayat
+                chat_history.push({"role": "user", "content": message});
+                
+                // Kirim permintaan ke OpenRouter API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": window.location.origin,
+                        "X-Title": document.title
+                    },
+                    body: JSON.stringify({
+                        model: MODEL_NAME,
+                        messages: chat_history,
+                        temperature: 0.7,
+                        max_tokens: 1024
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Sembunyikan indikator mengetik
+                hideTypingIndicator();
+                
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'Gagal mengambil respons dari AI');
+                }
+                
+                const aiResponse = data.choices[0].message.content.trim();
+                // Tambahkan respons AI ke riwayat
+                chat_history.push({"role": "assistant", "content": aiResponse});
+                
+                // Tambahkan respons ke tampilan
+                addMessage('ai', aiResponse);
+                
+                // Tampilkan notifikasi sukses
+                showNotification('Pesan terkirim', 'success');
+                
+            } catch (error) {
+                // Sembunyikan indikator mengetik
+                hideTypingIndicator();
+                
+                // Tampilkan pesan error
+                showError(error.message);
+                
+                // Tampilkan notifikasi error
+                showNotification('Error: ' + error.message, 'error');
+                
+            } finally {
+                // Aktifkan kembali tombol kirim
+                sendBtn.disabled = false;
+            }
+        }
+
+        function addMessage(sender, text) {
+            const container = document.getElementById('messages-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const time = new Date().toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-${sender === 'user' ? 'user' : 'robot'}"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender">${sender === 'user' ? 'Anda' : 'Nexus AI'}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-bubble">
+                        <div class="message-text">${formatMessage(text)}</div>
+                    </div>
+                    <div class="message-actions">
+                        <button class="message-action-btn" onclick="copyMessage(this)">
+                            <i class="far fa-copy"></i>
+                            <span>Salin</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            
+            // Gulir ke bawah secara halus
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+            
+            // Terapkan syntax highlighting
+            setTimeout(() => hljs.highlightAll(), 100);
+            
+            // Sesuaikan tampilan
+            adjustLayout();
+        }
+
+        function formatMessage(text) {
+            // Konversi format markdown ke HTML
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Konversi URL menjadi tautan
+            text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+            
+            // Konversi baris baru menjadi tag <br>
+            text = text.replace(/\n/g, '<br>');
+            
+            return text;
+        }
+
+        // ===== FUNGSI UI =====
+        function showTypingIndicator() {
+            const container = document.getElementById('messages-container');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingDiv = document.getElementById('typing-indicator');
+            if (typingDiv) typingDiv.remove();
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            adjustLayout();
+        }
+
+        function clearInput() {
+            const input = document.getElementById('message-input');
+            input.value = '';
+            autoResize(input);
+            input.focus();
+            showNotification('Input telah dihapus', 'success');
+        }
+
+        // ===== FUNGSI AKSI PESAN =====
+        function copyMessage(button) {
+            const messageText = button.closest('.message-content').querySelector('.message-text').textContent;
+            navigator.clipboard.writeText(messageText).then(() => {
+                showNotification('Teks berhasil disalin', 'success');
+            }).catch(() => {
+                showNotification('Gagal menyalin teks', 'error');
+            });
+        }
+
+        // ===== MANAJEMEN CHAT =====
+        function clearChat() {
+            if (confirm('Apakah Anda yakin ingin menghapus semua pesan?')) {
+                const container = document.getElementById('messages-container');
+                container.innerHTML = '';
+                
+                // Reset riwayat chat
+                chat_history = [
+                    {"role": "system", "content": "Kamu adalah Nexus AI, asisten yang ramah, profesional, dan membantu pengguna dengan jelas dan ringkas."}
+                ];
+                
+                // Tambahkan pesan selamat datang kembali
+                addMessage('ai', `Chat telah dibersihkan. 👋<br>Apa yang bisa saya bantu saat ini?`);
+                
+                showNotification('Semua pesan telah dihapus', 'success');
+            }
+        }
+
+        // ===== PENANGANAN ERROR =====
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.classList.remove('hidden');
+            
+            // Sembunyikan error secara otomatis setelah 5 detik
+            setTimeout(hideError, 5000);
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.add('hidden');
+        }
+
+        // ===== CEK KONEKSI =====
+        async function checkConnection() {
+            const statusElement = document.getElementById('connection-status');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'HEAD',
+                    headers: {
+                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    statusElement.innerHTML = '<span class="status-dot"></span> Terhubung';
+                    statusElement.style.color = 'var(--secondary)';
+                } else {
+                    throw new Error('Koneksi gagal');
+                }
+            } catch (error) {
+                statusElement.innerHTML = '<span class="status-dot" style="background: var(--danger)"></span> Tidak Terhubung';
+                statusElement.style.color = 'var(--danger)';
+                showError('Tidak dapat terhubung ke layanan AI.');
+            }
+        }
+
+        // ===== NOTIFIKASI =====
+        function showNotification(text, type) {
+            const notification = document.getElementById('notification');
+            const textElement = document.getElementById('notification-text');
+            const iconElement = notification.querySelector('.notification-icon i');
+            
+            // Atur jenis notifikasi
+            notification.className = `notification ${type} hidden`;
+            textElement.textContent = text;
+            
+            // Ganti ikon sesuai jenis
+            iconElement.className = type === 'success' ? 'fas fa-check' : 'fas fa-exclamation-circle';
+            
+            // Tampilkan notifikasi
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Sembunyikan setelah 2 detik
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.classList.add('hidden'), 300);
+            }, 2000);
+        }
+
+        // ===== EVENT LISTENERS =====
+        function setupEventListeners() {
+            const input = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-button');
+            
+            // Kirim pesan dengan Enter (Shift+Enter untuk baris baru)
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Fokus ke input saat diklik di area pesan
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.addEventListener('click', () => {
+                input.focus();
+            });
+            
+            // Pintasan keyboard
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + L untuk menghapus input
+                if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                    e.preventDefault();
+                    clearInput();
+                }
+                // Ctrl/Cmd + D untuk menghapus chat
+                else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                    e.preventDefault();
+                    clearChat();
+                }
+                // Escape untuk keluar dari fokus input
+                else if (e.key === 'Escape') {
+                    input.blur();
+                }
+            });
+            
+            // Cegah zoom halaman di perangkat seluler
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Perbarui status koneksi setiap 5 menit
+            setInterval(checkConnection, 300000);
+        }
+    </script>
+</body>
+  </html>
